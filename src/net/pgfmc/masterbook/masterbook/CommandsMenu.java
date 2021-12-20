@@ -18,11 +18,11 @@ import net.pgfmc.core.playerdataAPI.PlayerData;
 import net.pgfmc.core.requestAPI.Request;
 import net.pgfmc.core.requestAPI.Requester;
 import net.pgfmc.core.requestAPI.Requester.Reason;
-import net.pgfmc.survival.Main;
+import net.pgfmc.masterbook.Main;
 import net.pgfmc.survival.cmd.Afk;
-import net.pgfmc.survival.cmd.home.Homes;
 import net.pgfmc.teams.friends.Friends;
 import net.pgfmc.teams.friends.Friends.Relation;
+import net.pgfmc.teleport.home.Homes;
 
 public class CommandsMenu {
 	

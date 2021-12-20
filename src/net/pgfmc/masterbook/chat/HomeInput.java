@@ -5,6 +5,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 import net.pgfmc.core.playerdataAPI.PlayerData;
+import net.pgfmc.teleport.home.SetHome;
 
 public class HomeInput implements Listener {
 	
