@@ -12,7 +12,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="E:/github/javaLib/Bot.jar"/>
-	<classpathentry kind="lib" path="E:/github/javalib/Team.jar"/>
+	<classpathentry kind="lib" path="E:/github/javaLib/Teams.jar"/>
 	<classpathentry kind="lib" path="E:/github/javaLib/Core.jar"/>
 	<classpathentry kind="lib" path="E:/github/javaLib/Teleport.jar"/>
 	<classpathentry kind="lib" path="E:/github/javaLib/Survival.jar"/>
