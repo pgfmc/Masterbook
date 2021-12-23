@@ -439,6 +439,49 @@ public class CommandsMenu {
 					.filter(x-> {
 						return (x != pd);
 					})
+					.sorted((o1, o2) -> { // player sorter.
+						
+						if (o1.isOnline() && o2.isOnline()) { // both online
+							
+							Relation r1 = Friends.getRelation(pd, o1);
+							Relation r2 = Friends.getRelation(pd, o2);
+							
+							if (r1 == r2) { // both are equal.
+								return 0;
+							} else if (r1 == Relation.NONE && r2 != Relation.NONE) { // r2 friended &^ but not r1.
+								return -1;
+							} else if (r1 != Relation.NONE && r2 == Relation.NONE) { // r1 friended &^ but not r2.
+								return 1;
+							} else if (r1 == Relation.FRIEND && r2 == Relation.FAVORITE) {
+								return -1;
+							} else if (r1 == Relation.FAVORITE && r2 == Relation.FRIEND) {
+								return 1;
+							} else {
+								return 0;
+							}
+						} else if (o1.isOnline()) { // 1 is online
+							return 1;
+						} else if (o2.isOnline()) { // 2 is online
+							return -1;
+						} else { // ------------------ none are online
+							Relation r1 = Friends.getRelation(pd, o1);
+							Relation r2 = Friends.getRelation(pd, o2);
+							
+							if (r1 == r2) { // both are equal.
+								return 0;
+							} else if (r1 == Relation.NONE && r2 != Relation.NONE) { // r2 friended &^ but not r1.
+								return -1;
+							} else if (r1 != Relation.NONE && r2 == Relation.NONE) { // r1 friended &^ but not r2.
+								return 1;
+							} else if (r1 == Relation.FRIEND && r2 == Relation.FAVORITE) {
+								return -1;
+							} else if (r1 == Relation.FAVORITE && r2 == Relation.FRIEND) {
+								return 1;
+							} else {
+								return 0;
+							}
+						}
+					})
 					.collect(Collectors.toList()), x-> {
 				return createButton(Material.PLAYER_HEAD, "§r§a" + x.getName(), (x.getOfflinePlayer().isOnline()) ? "§r§aOnline" : "§r§cOffline", (p, e) -> {
 					p.openInventory(new PlayerOptions(pd, x).getInventory());
@@ -546,9 +589,6 @@ public class CommandsMenu {
 					createButton(Material.RED_CONCRETE, 15, "§r§7Cancel", (p, e) -> {
 						p.openInventory(new PlayerOptions(pd, player).getInventory());
 					});
-					
-					
-					
 				}
 			}
 		}
