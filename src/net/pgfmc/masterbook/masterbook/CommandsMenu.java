@@ -6,11 +6,14 @@ import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.entity.Player;
 
 import net.pgfmc.core.DimManager;
 import net.pgfmc.core.cmd.Blocked;
-import net.pgfmc.core.inventoryAPI.InteractableInventory;
+import net.pgfmc.core.inventoryAPI.BaseInventory;
+import net.pgfmc.core.inventoryAPI.Button;
 import net.pgfmc.core.inventoryAPI.PagedInventory;
+import net.pgfmc.core.inventoryAPI.SizeData;
 import net.pgfmc.core.permissions.Role;
 import net.pgfmc.core.playerdataAPI.PlayerData;
 import net.pgfmc.core.requestAPI.Requester;
@@ -25,7 +28,7 @@ public class CommandsMenu {
 	
 	private static boolean TEAMINIT = false;
 	
-	public static class Homepage extends InteractableInventory {
+	public static class Homepage extends BaseInventory {
 		
 		@SuppressWarnings("unchecked")
 		public Homepage(PlayerData pd) {
@@ -34,7 +37,7 @@ public class CommandsMenu {
 				TEAMINIT = (Bukkit.getServer().getPluginManager().getPlugin("Teams").isEnabled());
 			}
 			
-			pd.getPlayer().getEffectivePermissions().forEach(x-> {
+			pd.getPlayer().getEffectivePermissions().forEach( x-> {
 				/* 
 				 * [] [] XX [] [] [] [] [] []
 				 * [] [] [] [] [] [] [] [] []
@@ -43,14 +46,14 @@ public class CommandsMenu {
 				if (x.getPermission().equals("pgf.cmd.link") && x.getValue()) {
 					
 					if (pd.getData("Discord") != null) {
-						createButton(Material.AMETHYST_SHARD, 2, "§dUnlink Discord", (p, e) -> {
-							p.openInventory(new DiscordConfirm(pd).getInventory());
-						});
+						setButton(2, new Button(Material.AMETHYST_SHARD, (e, i) -> {
+							e.getWhoClicked().openInventory(new DiscordConfirm(pd).getInventory());
+						}, "§dUnlink Discord"));
 					} else {
-						createButton(Material.QUARTZ, 2, "§dLink Discord", (p, e) -> {
-							p.closeInventory();
-							p.performCommand("link");
-						});
+						setButton(2, new Button(Material.QUARTZ, (e, i) -> {
+							e.getWhoClicked().closeInventory();
+							((Player) e.getWhoClicked()).performCommand("link");
+						}, "§dLink Discord"));
 					}
 					
 				} else 
@@ -64,17 +67,18 @@ public class CommandsMenu {
 				if (x.getPermission().equals("pgf.cmd.afk") && x.getValue()) {
 					
 					if (Afk.isAfk(pd.getPlayer())) {
-						createButton(Material.BLUE_ICE, 3, "§r§7AFK: §aEnabled", "§r§7Click to disable!", (p, e) -> {
-							// p.closeInventory(); // Better if not close
-							p.performCommand("afk");
-							p.openInventory(new Homepage(pd).getInventory());
-						});
+						setButton(3, new Button(Material.BLUE_ICE, (e, i) -> {
+							
+							((Player) e.getWhoClicked()).performCommand("afk");
+							e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+						}, "§r§7AFK: §aEnabled", "§r§7Click to disable!"));
 					} else {
-						createButton(Material.ICE, 3, "§r§7AFK: §cDisabled", "§r§7Click to enable!", (p, e) -> {
-							// p.closeInventory(); // Better if not close
-							p.performCommand("afk");
-							p.openInventory(new Homepage(pd).getInventory());
-						});
+						setButton(3, new Button(Material.ICE, (e, i) -> {
+
+							
+							((Player) e.getWhoClicked()).performCommand("afk");
+							e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+						}, "§r§7AFK: §cDisabled", "§r§7Click to enable!"));
 					}
 				}
 				
@@ -85,9 +89,9 @@ public class CommandsMenu {
 				 * Back command
 				 */
 				if (x.getPermission().equals("pgf.cmd.back") && x.getValue()) {
-					createButton(Material.ARROW, 5, "§r§4Back", "§r§7Go back to your last location", (p, e) -> {
-						p.openInventory(new BackConfirm(pd).getInventory());
-					});
+					setButton(5, new Button(Material.ARROW, (e, i) -> {
+						e.getWhoClicked().openInventory(new BackConfirm(pd).getInventory());
+					}, "§r§4Back", "§r§7Go back to your last location"));
 				}
 				
 				/* 
@@ -97,10 +101,10 @@ public class CommandsMenu {
 				 * shows the current world's seed on screen.
 				 */
 				
-				createButton(Material.BOOK, 6, "§r§dInfo", "§r§7Bring up the guidebook", (p, e) -> {
-					p.closeInventory();
-					p.openBook(Guidebook.getCopmleteBook());
-				});
+				setButton(6, new Button(Material.BOOK, (e, i) -> {
+					e.getWhoClicked().closeInventory();
+					((Player) e.getWhoClicked()).openBook(Guidebook.getCopmleteBook());
+				}, "§r§dInfo", "§r§7Bring up the guidebook"));
 				
 				
 				/* 
@@ -110,9 +114,9 @@ public class CommandsMenu {
 				 * /dim command
 				 */
 				if (x.getPermission().equals("pgf.cmd.goto") && x.getValue()) {
-					createButton(Material.SPYGLASS, 13, "§r§9Dimensions", "§r§7Go to other worlds!", (p, e) -> {
-						p.openInventory(new DimSelect(pd).getInventory());
-					});
+					setButton(13, new Button(Material.SPYGLASS, (e, i) -> {
+						e.getWhoClicked().openInventory(new DimSelect(pd).getInventory());
+					}, "§r§9Dimensions", "§r§7Go to other worlds!"));
 				}
 				
 				/* 
@@ -122,9 +126,9 @@ public class CommandsMenu {
 				 * home menu
 				 */
 				if (x.getPermission().equals("pgf.cmd.home.*") && x.getValue()) {
-					createButton(Material.COMPASS, 20, "§r§eHomes", (p, e) -> {
-						p.openInventory(new HomeMenu(pd).getInventory());
-					});
+					setButton(20, new Button(Material.COMPASS, (e, i) -> {
+						e.getWhoClicked().openInventory(new HomeMenu(pd).getInventory());
+					}, "§r§eHomes"));
 				}
 				
 				/* 
@@ -136,13 +140,13 @@ public class CommandsMenu {
 				if (x.getPermission().equals("pgf.cmd.tp.tpa") && x.getValue()) {
 					
 					if (Bukkit.getOnlinePlayers().size() == 1) {
-						createButton(Material.GRAY_CONCRETE, 21, "§r§5Tpa", "§r§cNo players online.", (p, e) -> {
+						setButton(21, new Button(Material.GRAY_CONCRETE, (e, i) -> {
 							pd.playSound(Sound.BLOCK_NOTE_BLOCK_PLING);
-						});
+						}, "§r§5Tpa", "§r§cNo players online."));
 					} else {
-						createButton(Material.ENDER_PEARL, 21, "§r§5Tpa", "§r§7Teleport to another player!", (p, e) -> {
-							p.openInventory(new TpaList(pd).getInventory());
-						});
+						setButton(21, new Button(Material.ENDER_PEARL, (e, i) -> {
+							e.getWhoClicked().openInventory(new TpaList(pd).getInventory());
+						}, "§r§5Tpa", "§r§7Teleport to another player!"));
 					}
 					
 					
@@ -156,9 +160,9 @@ public class CommandsMenu {
 				 * home menu
 				 */
 				if (x.getPermission().equals("teams.friend.*") && x.getValue() && TEAMINIT) {
-					createButton(Material.TOTEM_OF_UNDYING, 23, "§r§6Friends", (p, e) -> {
-						p.openInventory(new FriendsList(pd).getInventory());
-					});
+					setButton(23, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
+						e.getWhoClicked().openInventory(new FriendsList(pd).getInventory());
+					}, "§r§6Friends"));
 				}
 				
 				/* 
@@ -168,9 +172,9 @@ public class CommandsMenu {
 				 * home menu
 				 */
 				if (x.getPermission().equals("bukkit.command.list") && x.getValue() && TEAMINIT) {
-					createButton(Material.PLAYER_HEAD, 24, "§r§bPlayer List", (p, e) -> {
-						 p.openInventory(new PlayerList(pd).getInventory());
-					});
+					setButton(24, new Button(Material.PLAYER_HEAD, (e, i) -> {
+						e.getWhoClicked().openInventory(new PlayerList(pd).getInventory());
+					}, "§r§bPlayer List"));
 				}
 				
 				// Other buttons -
@@ -182,9 +186,7 @@ public class CommandsMenu {
 				 * home menu
 				 */
 				if (pd.getData("Roles") != null && ((List<Role>) pd.getData("Roles")).contains(Role.ADMIN)) {
-					createButton(Material.EMERALD, 4, "§r§cAdmin", (p, e) -> {
-						 // open up admin
-					});
+					setButton(4, new Button(Material.EMERALD, "§r§cAdmin"));
 				}
 				
 				/* 
@@ -194,15 +196,15 @@ public class CommandsMenu {
 				 * home menu
 				 */
 				if (x.getPermission().equals("pgf.cmd.donator.echest") && x.getValue()) {
-					createButton(Material.ENDER_CHEST, 22, "§r§3Ender Chest", "§r§9VIP perk!", (p, e) -> {
-						p.closeInventory();
-						p.performCommand("echest");
-					});
+					setButton(22, new Button(Material.ENDER_CHEST, (e, i) -> {
+						e.getWhoClicked().closeInventory();
+						((Player) e.getWhoClicked()).performCommand("echest");
+					}, "§r§3Ender Chest", "§r§9VIP perk!"));
 				}
 				
-				createButton(Material.LEVER, 9, "§r§4Requests", (p, e) -> {
-					p.openInventory(new RequestList(pd).getInventory());
-				});
+				setButton(9, new Button(Material.LEVER, (e, i) -> {
+					e.getWhoClicked().openInventory(new RequestList(pd).getInventory());
+				}, "§r§4Requests"));
 			});
 		}
 	}
@@ -216,7 +218,7 @@ public class CommandsMenu {
 	 * @author CrimsonDart
 	 *
 	 */
-	private static class DiscordConfirm extends InteractableInventory {
+	private static class DiscordConfirm extends BaseInventory {
 		
 		public DiscordConfirm(PlayerData pd) {
 			super(SizeData.SMALL, "§r§8Unlink Account?");
@@ -226,32 +228,32 @@ public class CommandsMenu {
 			 * sets buttons to the already-coded commands, because there is no difference. 
 			 */
 			
-			createButton(Material.LIME_CONCRETE, 11, "§r§cUnlink", (p, e) -> {
+			setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
 				// p.closeInventory(); // I think it is better if the unlink doesn't close the inventory
-				p.performCommand("unlink");
-				p.openInventory(new Homepage(pd).getInventory());
-			});
+				((Player) e.getWhoClicked()).performCommand("unlink");
+				e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+			}, "§r§cUnlink"));
 			
 			// cancel button.
-			createButton(Material.RED_CONCRETE, 15, "§r§7Cancel", (p, e) -> {
-				p.openInventory(new Homepage(pd).getInventory());
-			});
+			setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
+				e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+			}, "§r§7Cancel"));
 		}
 	}
 	
-	private static class BackConfirm extends InteractableInventory {
+	private static class BackConfirm extends BaseInventory {
 		public BackConfirm(PlayerData pd) {
 			super(SizeData.SMALL, "§r§8Tp to last location?");
 			
-			createButton(Material.LIME_CONCRETE, 11, "§r§dTeleport", (p, e) -> {
-				p.closeInventory();
-				p.performCommand("back");
-			});
+			setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
+				e.getWhoClicked().closeInventory();
+				((Player) e.getWhoClicked()).performCommand("back");
+			}, "§r§dTeleport"));
 			
-			createButton(Material.RED_CONCRETE, 15, "§r§7Cancel", (p, e) -> {
-				p.closeInventory();
-				p.openInventory(new Homepage(pd).getInventory());
-			});
+			setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
+				e.getWhoClicked().closeInventory();
+				e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+			}, "§r§7Cancel"));
 		}
 	}
 	
@@ -260,9 +262,9 @@ public class CommandsMenu {
 		public DimSelect(PlayerData pd) {
 			super(SizeData.SMALL, "§r§5Dimension Select", DimManager.getAllWorlds(false).stream()
 					.map( x-> {
-						return new Button(Material.ENDER_PEARL, "§r§9" + x.getName(), null, (p, e) -> {
-							p.performCommand("goto " + x.getName());
-						});
+						return new Button(Material.ENDER_PEARL, (e, i) -> {
+							((Player) e.getWhoClicked()).performCommand("goto " + x.getName());
+						}, "§r§9" + x.getName());
 					})
 					.collect(Collectors.toList())
 			);
@@ -271,29 +273,29 @@ public class CommandsMenu {
 		
 	}
 	
-	private static class HomeMenu extends InteractableInventory {
+	private static class HomeMenu extends BaseInventory {
 		
 		public HomeMenu(PlayerData pd) {
 			super(SizeData.SMALL, "§r§8Home");
 			
-			createButton(Material.FEATHER, 0, "§r§7Back", (p, e) -> {
-				p.openInventory(new Homepage(pd).getInventory());
-			});
+			setButton(0, new Button(Material.FEATHER, (e, i) -> {
+				e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+			}, "§r§7Back"));
 			
-			createButton(Material.ENDER_PEARL, 11, "§r§dGo to Home", (p, e) -> {
-				p.openInventory(new HomeList(pd, "home ").getInventory());
-			});
-			
+			setButton(11, new Button(Material.ENDER_PEARL, (e, i) -> {
+				e.getWhoClicked().openInventory(new HomeList(pd, "home ").getInventory());
+			}, "§r§dGo to Home"));
 			
 			if (!(Homes.getHomes(pd.getOfflinePlayer()).size() >= 3)) {
-				createButton(Material.OAK_SAPLING, 13, "§r§aSet Home", (p, e) -> {
-					p.openInventory(new SetConfirm(pd).getInventory());
-				});
+				
+				setButton(11, new Button(Material.OAK_SAPLING, (e, i) -> {
+					e.getWhoClicked().openInventory(new SetConfirm(pd).getInventory());
+				}, "§r§aSet Home"));
 			}
 			
-			createButton(Material.FLINT_AND_STEEL, 15, "§r§cDelete Home", (p, e) -> {
-				p.openInventory(new DelList(pd).getInventory());
-			});
+			setButton(15, new Button(Material.FLINT_AND_STEEL, (e, i) -> {
+				e.getWhoClicked().openInventory(new DelList(pd).getInventory());
+			}, "§r§cDelete Home"));
 		}
 		
 		private static class HomeList extends PagedInventory {
@@ -301,10 +303,10 @@ public class CommandsMenu {
 			public HomeList(PlayerData pd, String dingus) {
 				super(SizeData.SMALL, "§r§8Home Select", Homes.getHomes(pd.getPlayer()).keySet().stream()
 						.map(x-> {
-							return new Button(Material.PAPER, x, null, (p, e) -> {
-								p.performCommand(dingus + x);
-								p.closeInventory();
-							});
+							return new Button(Material.PAPER,  (e, i) -> {
+								((Player) e.getWhoClicked()).performCommand(dingus + x);
+								e.getWhoClicked().closeInventory();
+							}, x);
 						})
 						.collect(Collectors.toList())
 				);
@@ -319,13 +321,13 @@ public class CommandsMenu {
 		 * {@link net.pgfmc.core.ChatEvents}
 		 *
 		 */
-		private static class SetConfirm extends InteractableInventory {
+		private static class SetConfirm extends BaseInventory {
 			public SetConfirm(PlayerData pd) {
 				super(SizeData.SMALL, "§r§8Set home here?");
 				
-				createButton(Material.LIME_CONCRETE, 11, "§r§aSet Home", (p, e) -> {
+				setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
 					pd.setData("tempHomeLocation", pd.getPlayer().getLocation());
-					p.closeInventory();
+					e.getWhoClicked().closeInventory();
 					pd.sendMessage("§r§dType into chat to set the name of your Home!");
 					pd.sendMessage("§r§dYou can only name the home for 4 minutes.");
 					
@@ -341,11 +343,11 @@ public class CommandsMenu {
 						}
 						
 					}, 20 * 60 * 4);
-				});
+				}, "§r§aSet Home"));
 				
-				createButton(Material.RED_CONCRETE, 15, "§r§7Cancel", (p, e) -> {
-					p.openInventory(new HomeMenu(pd).getInventory());
-				});
+				setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
+					e.getWhoClicked().openInventory(new HomeMenu(pd).getInventory());
+				}, "§r§7Cancel"));
 			}
 		}
 		
@@ -355,13 +357,12 @@ public class CommandsMenu {
 			public DelList(PlayerData pd) {
 				super(SizeData.SMALL, "§r§8Delete Home", Homes.getHomes(pd.getPlayer()).keySet().stream()
 						.map(x-> {
-							return new Button(Material.PAPER, "§r§a" + x, null, (p, e) -> {
-								p.performCommand("delhome " + x);
-								p.openInventory(new DelList(pd).getInventory());
-							});
+							return new Button(Material.PAPER, (e, i) -> {
+								((Player) e.getWhoClicked()).performCommand("delhome " + x);
+								e.getWhoClicked().openInventory(new DelList(pd).getInventory());
+							}, "§r§a" + x);
 						})
 						.collect(Collectors.toList()));
-				
 				
 				setBackButton(new HomeMenu(pd));
 			}
@@ -376,10 +377,10 @@ public class CommandsMenu {
 						return (!x.getUniqueId().toString().equals(pd.getUniqueId().toString()));
 					})
 					.map( (x) -> {
-						return new Button(Material.PLAYER_HEAD, "§r§a" + x.getName(), null, (p, e) -> {
-							p.performCommand("tpa " + x.getName());
-							p.openInventory(new Homepage(pd).getInventory());
-						});
+						return new Button(Material.PLAYER_HEAD, (e, i) -> {
+							((Player) e.getWhoClicked()).performCommand("tpa " + x.getName());
+							e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+						}, "§r§a" + x.getName());
 					})
 					.collect(Collectors.toList())
 			);
@@ -393,52 +394,53 @@ public class CommandsMenu {
 		public FriendsList(PlayerData player) {
 			super(SizeData.SMALL, "§r§8Friends List", 
 					Friends.getFriendsMap(player).keySet().stream().map((x) -> {
-				return new Button(Material.PAPER, "§r" + x.getRankedName(), null, (p, e) -> {
+				return new Button(Material.PAPER, (e, i) -> {
 					
-					p.openInventory(new FriendOptions(player, x).getInventory());
+					e.getWhoClicked().openInventory(new FriendOptions(player, x).getInventory());
 					
-				});
+				}, "§r" + x.getRankedName() );
 			}).collect(Collectors.toList()));
 			
 			setBackButton(new Homepage(player));
 		}
 		
-		public static class FriendOptions extends InteractableInventory {
+		public static class FriendOptions extends BaseInventory {
 
 			public FriendOptions(PlayerData player, PlayerData friend) {
 				super(SizeData.SMALL, "§r§8Options for " + friend.getRankedName());
 				
-				createButton(Material.ARROW, 12, "§r§cUnfriend", (p, e) -> {
+				setButton(12, new Button(Material.ARROW, (e, i) -> {
 					Friends.setRelation(player, Relation.NONE, friend, Relation.NONE);
 					player.sendMessage("§cYou have Unfriended " + friend.getName() + ".");
 					player.playSound(Sound.BLOCK_CALCITE_HIT);
 					// player.getPlayer().closeInventory(); // Better if not close
-					p.openInventory(new FriendOptions(player, friend).getInventory());
+					e.getWhoClicked().openInventory(new FriendOptions(player, friend).getInventory());
 					
-				});
+				}, "§r§cUnfriend"));
 				
 				Relation r = Friends.getRelation(player, friend);
 				
 				if (r == Relation.FRIEND) {
-					createButton(Material.NETHER_STAR, 14, "§r§eFavorite", (p, e) -> {
+					setButton(14, new Button(Material.NETHER_STAR, (e, i) -> {
 						
 						Friends.setRelation(player, friend, Relation.FAVORITE);
 						player.sendMessage("§r§6" + friend.getName() + " is now a favorite!");
 						player.playSound(Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
 						// player.getPlayer().closeInventory(); // Better if not close
-						p.openInventory(new FriendOptions(player, friend).getInventory());
+						e.getWhoClicked().openInventory(new FriendOptions(player, friend).getInventory());
 						
-					});
+					}, "§r§eFavorite"));
+					
 				} else if (r == Relation.FAVORITE) {
-					createButton(Material.NETHER_STAR, 14, "§r§6Unfavorite", (p, e) -> {
+					setButton(14, new Button(Material.NETHER_STAR, (e, i) -> {
 						
 						Friends.setRelation(player, friend, Relation.FRIEND);
 						player.sendMessage("§r§c" + friend.getName() + " has Been unfavorited!");
 						player.playSound(Sound.BLOCK_CALCITE_HIT);
 						// player.getPlayer().closeInventory(); // Better if not close
-						p.openInventory(new FriendOptions(player, friend).getInventory());
+						e.getWhoClicked().openInventory(new FriendOptions(player, friend).getInventory());
 						
-					});
+					}, "§r§6Unfavorite"));
 				}
 			}
 		}
@@ -495,10 +497,10 @@ public class CommandsMenu {
 						}
 					})
 					.map(x -> {
-						return new Button(Material.PLAYER_HEAD, "§r§a" + x.getName(), (x.getOfflinePlayer().isOnline()) ? "§r§aOnline" : "§r§cOffline", 
-						(p, e) -> {
-							p.openInventory(new PlayerOptions(pd, x).getInventory());
-						}
+						return new Button(Material.PLAYER_HEAD, (e, i) -> {
+							e.getWhoClicked().openInventory(new PlayerOptions(pd, x).getInventory());
+						}, "§r§a" + x.getName(), (x.getOfflinePlayer().isOnline()) ? "§r§aOnline" : "§r§cOffline"
+						
 						);
 					})
 					.collect(Collectors.toList())
@@ -507,97 +509,97 @@ public class CommandsMenu {
 			setBackButton(new Homepage(pd));
 		}
 		
-		private static class PlayerOptions extends InteractableInventory {
+		private static class PlayerOptions extends BaseInventory {
 			
 			public PlayerOptions(PlayerData pd, PlayerData player) {
 				super(SizeData.SMALL, player.getRankedName());
 				
-				createButton(Material.FEATHER, 0, "§r§7Back", (p, e) -> {
-					p.openInventory(new PlayerList(pd).getInventory());
-				});
+				setButton(0, new Button(Material.FEATHER, (e, i) -> {
+					e.getWhoClicked().openInventory(new PlayerList(pd).getInventory());
+				}, "§r§7Back"));
 				
 				pd.getPlayer().getEffectivePermissions().forEach(x-> {
 					if (x.getPermission().equals("teams.friend.*") && x.getValue() && TEAMINIT) {
 						
 						Relation r = Friends.getRelation(pd, player);
 						if (r == Relation.FRIEND || r == Relation.FAVORITE) {
-							createButton(Material.TOTEM_OF_UNDYING, 11, "§r§cUnfriend", (p, e) -> {
-								p.openInventory(new UnfriendConfirm(pd, player).getInventory());
-							});
+							setButton(11, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
+								e.getWhoClicked().openInventory(new UnfriendConfirm(pd, player).getInventory());
+							}, "§r§cUnfriend"));
 							
 							if (r == Relation.FAVORITE) {
-								createButton(Material.TOTEM_OF_UNDYING, 12, "§r§cUnfavorite", (p, e) -> {
-									p.performCommand("unfav " + player.getName());
-									// p.closeInventory();
-									p.openInventory(new PlayerOptions(pd, player).getInventory());
-								});
+								setButton(12, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
+									((Player) e.getWhoClicked()).performCommand("unfav " + player.getName());
+									e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
+									
+								}, "§r§cUnfavorite"));
 							} else {
-								createButton(Material.TOTEM_OF_UNDYING, 12, "§r§eFavorite", (p, e) -> {
-									p.performCommand("fav " + player.getName());
+								setButton(12, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
+									((Player) e.getWhoClicked()).performCommand("fav " + player.getName());
 									// p.closeInventory();
-									p.openInventory(new PlayerOptions(pd, player).getInventory());
-								});
+									e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
+								}, "§r§eFavorite"));
 							}
 							
 						} else {
-							createButton(Material.TOTEM_OF_UNDYING, 11, "§r§6Friend", (p, e) -> {
-								p.openInventory(new FriendConfirm(pd, player).getInventory());
-							});
+							setButton(11, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
+								e.getWhoClicked().openInventory(new FriendConfirm(pd, player).getInventory());
+							}, "§r§6Friend"));
 						}
 					}
 					
 					if (x.getPermission().equals("pgf.cmd.block") && x.getValue()) {
 						
 						if (Blocked.GET_BLOCKED(pd.getOfflinePlayer()).contains(player.getUniqueId())) {
-							createButton(Material.RED_STAINED_GLASS_PANE, 14, "§r§4Unblock", (p, e) -> {
-								p.performCommand("unblock " + player.getName());
+							setButton(14, new Button(Material.RED_STAINED_GLASS_PANE, (e, i) -> {
+								((Player) e.getWhoClicked()).performCommand("unblock " + player.getName());
 								// p.closeInventory();
-								p.openInventory(new PlayerOptions(pd, player).getInventory());
-							});
+								e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
+							}, "§r§4Unblock"));
 						} else {
-							createButton(Material.WHITE_STAINED_GLASS_PANE, 14, "§r§4Block", (p, e) -> {
-								p.performCommand("block " + player.getName());
+							setButton(14, new Button(Material.WHITE_STAINED_GLASS_PANE, (e, i) -> {
+								((Player) e.getWhoClicked()).performCommand("block " + player.getName());
 								// p.closeInventory();
-								p.openInventory(new PlayerOptions(pd, player).getInventory());
-							});
+								e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
+							}, "§r§4Block"));
 						}
 					}
 					
-					createButton(Material.RED_BANNER, 15, "§r§4Report", "§r§7If someone is bullying or\ngriefing you, use this!" + "\nWIP");
+					setButton(15, new Button(Material.RED_BANNER, "§r§4Report", "§r§7If someone is bullying or\ngriefing you, use this!" + "\nWIP"));
 				});
 			}
 			
-			private static class FriendConfirm extends InteractableInventory {
+			private static class FriendConfirm extends BaseInventory {
 				
 				public FriendConfirm(PlayerData pd, PlayerData player) {
 					super(SizeData.SMALL, "§r§6Friend " + player.getName() + "?");
 					
-					createButton(Material.LIME_CONCRETE, 11, "§r§aSend Request", (p, e) -> {
+					setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
 						// p.closeInventory();
-						p.performCommand("friendrequest " + player.getName());
-						p.openInventory(new PlayerOptions(pd, player).getInventory());
-					});
+						((Player) e.getWhoClicked()).performCommand("friendrequest " + player.getName());
+						e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
+					}, "§r§aSend Request"));
 					
-					createButton(Material.RED_CONCRETE, 15, "§r§7Cancel", (p, e) -> {
-						p.openInventory(new PlayerOptions(pd, player).getInventory());
-					});
+					setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
+						e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
+					}, "§r§7Cancel"));
 				}
 			}
 			
-			private static class UnfriendConfirm extends InteractableInventory {
+			private static class UnfriendConfirm extends BaseInventory {
 				
 				public UnfriendConfirm(PlayerData pd, PlayerData player) {
 					super(SizeData.SMALL, "§r§cUnfriend " + player.getName() + "?");
 					
-					createButton(Material.LIME_CONCRETE, 11, "§r§cUnfriend", (p, e) -> {
+					setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
 						// p.closeInventory();
-						p.performCommand("unfriend " + player.getName());
-						p.openInventory(new PlayerOptions(pd, player).getInventory());
-					});
+						((Player) e.getWhoClicked()).performCommand("unfriend " + player.getName());
+						e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
+					}, "§r§cUnfriend"));
 					
-					createButton(Material.RED_CONCRETE, 15, "§r§7Cancel", (p, e) -> {
-						p.openInventory(new PlayerOptions(pd, player).getInventory());
-					});
+					setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
+						e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
+					}, "§r§7Cancel"));
 				}
 			}
 		}
@@ -610,14 +612,14 @@ public class CommandsMenu {
 						return (x.getTarget() == pd);
 					})
 					.map( x -> {
-						return new Button(Material.ARROW, x.getParent().getName(), null, (p, e) -> {
+						return new Button(Material.ARROW, (e, i) -> {
 							if (x.expireNow(Reason.Accept) != false) {
 								x.act();
 							} else {
 								pd.playSound(Sound.BLOCK_NOTE_BLOCK_BASS);
-								p.openInventory(new RequestList(pd).getInventory());
+								e.getWhoClicked().openInventory(new RequestList(pd).getInventory());
 							}
-						});
+						}, x.getParent().getName());
 					})
 					.collect(Collectors.toList())
 			);
