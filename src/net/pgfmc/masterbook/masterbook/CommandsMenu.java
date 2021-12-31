@@ -398,7 +398,7 @@ public class CommandsMenu {
 					
 					e.getWhoClicked().openInventory(new FriendOptions(player, x).getInventory());
 					
-				}, "§r" + x.getRankedName() );
+				}, "§r" + x.getNickname() );
 			}).collect(Collectors.toList()));
 			
 			setBackButton(new Homepage(player));
@@ -407,7 +407,7 @@ public class CommandsMenu {
 		public static class FriendOptions extends BaseInventory {
 
 			public FriendOptions(PlayerData player, PlayerData friend) {
-				super(SizeData.SMALL, "§r§8Options for " + friend.getRankedName());
+				super(SizeData.SMALL, "§r§8Options for " + friend.getNickname());
 				
 				setButton(12, new Button(Material.ARROW, (e, i) -> {
 					Friends.setRelation(player, Relation.NONE, friend, Relation.NONE);
@@ -512,7 +512,7 @@ public class CommandsMenu {
 		private static class PlayerOptions extends BaseInventory {
 			
 			public PlayerOptions(PlayerData pd, PlayerData player) {
-				super(SizeData.SMALL, player.getRankedName());
+				super(SizeData.SMALL, player.getNickname());
 				
 				setButton(0, new Button(Material.FEATHER, (e, i) -> {
 					e.getWhoClicked().openInventory(new PlayerList(pd).getInventory());
