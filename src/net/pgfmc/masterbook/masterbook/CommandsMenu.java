@@ -14,7 +14,7 @@ import net.pgfmc.core.inventoryAPI.BaseInventory;
 import net.pgfmc.core.inventoryAPI.Button;
 import net.pgfmc.core.inventoryAPI.PagedInventory;
 import net.pgfmc.core.inventoryAPI.SizeData;
-import net.pgfmc.core.permissions.Role;
+import net.pgfmc.core.permissions.PermissionsManager;
 import net.pgfmc.core.playerdataAPI.PlayerData;
 import net.pgfmc.core.requestAPI.Requester;
 import net.pgfmc.core.requestAPI.Requester.Reason;
@@ -30,7 +30,6 @@ public class CommandsMenu {
 	
 	public static class Homepage extends BaseInventory {
 		
-		@SuppressWarnings("unchecked")
 		public Homepage(PlayerData pd) {
 			super(SizeData.SMALL, "Commands");
 			if (!TEAMINIT) {
@@ -185,9 +184,10 @@ public class CommandsMenu {
 				 * [] [] [] [] [] [] [] [] []
 				 * home menu
 				 */
-				if (pd.getData("Roles") != null && ((List<Role>) pd.getData("Roles")).contains(Role.ADMIN)) {
-					setButton(4, new Button(Material.EMERALD, "§r§cAdmin"));
-				}
+				List<String> roles = pd.getData("Roles");
+				if (roles != null) {
+					setButton(4, new Button(Material.EMERALD, PermissionsManager.getRolePrefix(roles.get(0)) + roles.get(0)));
+				};
 				
 				/* 
 				 * [] [] [] [] [] [] [] [] []
