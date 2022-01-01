@@ -8,13 +8,13 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
-import net.pgfmc.core.DimManager;
 import net.pgfmc.core.cmd.Blocked;
 import net.pgfmc.core.inventoryAPI.BaseInventory;
 import net.pgfmc.core.inventoryAPI.Button;
 import net.pgfmc.core.inventoryAPI.PagedInventory;
 import net.pgfmc.core.inventoryAPI.SizeData;
-import net.pgfmc.core.permissions.PermissionsManager;
+import net.pgfmc.core.misc.DimManager;
+import net.pgfmc.core.playerdataAPI.PermissionsManager;
 import net.pgfmc.core.playerdataAPI.PlayerData;
 import net.pgfmc.core.requestAPI.Requester;
 import net.pgfmc.core.requestAPI.Requester.Reason;
@@ -398,7 +398,7 @@ public class CommandsMenu {
 					
 					e.getWhoClicked().openInventory(new FriendOptions(player, x).getInventory());
 					
-				}, "§r" + x.getNickname() );
+				}, "§r" + x.getRankedName() );
 			}).collect(Collectors.toList()));
 			
 			setBackButton(new Homepage(player));
@@ -407,7 +407,7 @@ public class CommandsMenu {
 		public static class FriendOptions extends BaseInventory {
 
 			public FriendOptions(PlayerData player, PlayerData friend) {
-				super(SizeData.SMALL, "§r§8Options for " + friend.getNickname());
+				super(SizeData.SMALL, "§r§8Options for " + friend.getRankedName());
 				
 				setButton(12, new Button(Material.ARROW, (e, i) -> {
 					Friends.setRelation(player, Relation.NONE, friend, Relation.NONE);
@@ -512,7 +512,7 @@ public class CommandsMenu {
 		private static class PlayerOptions extends BaseInventory {
 			
 			public PlayerOptions(PlayerData pd, PlayerData player) {
-				super(SizeData.SMALL, player.getNickname());
+				super(SizeData.SMALL, player.getRankedName());
 				
 				setButton(0, new Button(Material.FEATHER, (e, i) -> {
 					e.getWhoClicked().openInventory(new PlayerList(pd).getInventory());
