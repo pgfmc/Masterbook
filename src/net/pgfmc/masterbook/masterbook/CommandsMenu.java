@@ -1,6 +1,5 @@
 package net.pgfmc.masterbook.masterbook;
 
-import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
@@ -8,13 +7,12 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
+import net.pgfmc.core.DimManager;
 import net.pgfmc.core.cmd.Blocked;
 import net.pgfmc.core.inventoryAPI.BaseInventory;
 import net.pgfmc.core.inventoryAPI.Button;
 import net.pgfmc.core.inventoryAPI.PagedInventory;
 import net.pgfmc.core.inventoryAPI.SizeData;
-import net.pgfmc.core.misc.DimManager;
-import net.pgfmc.core.playerdataAPI.PermissionsManager;
 import net.pgfmc.core.playerdataAPI.PlayerData;
 import net.pgfmc.core.requestAPI.Requester;
 import net.pgfmc.core.requestAPI.Requester.Reason;
@@ -184,10 +182,14 @@ public class CommandsMenu {
 				 * [] [] [] [] [] [] [] [] []
 				 * home menu
 				 */
-				List<String> roles = pd.getData("Roles");
-				if (roles != null) {
-					setButton(4, new Button(Material.EMERALD, PermissionsManager.getRolePrefix(roles.get(0)) + roles.get(0)));
-				};
+				//List<Role> roles = pd.getData("Roles");
+				
+				
+				
+				
+				//if (roles != null) {
+				//	setButton(4, new Button(Material.EMERALD, PermissionsManager.getRolePrefix(roles.get(0)) + roles.get(0)));
+				//};
 				
 				/* 
 				 * [] [] [] [] [] [] [] [] []
