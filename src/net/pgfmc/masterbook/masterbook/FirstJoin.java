@@ -22,7 +22,6 @@ public class FirstJoin implements Listener {
 	 */
 	public static ItemStack helpBook;
 	
-	@EventHandler
 	public void onFirstJoin(PlayerJoinEvent e)
 	{
 		if (helpBook == null) {
