@@ -284,7 +284,7 @@ public class CommandsMenu {
 				e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
 			}, "§r§7Back"));
 			
-			setButton(11, new Button(Material.ENDER_PEARL, (e, i) -> {
+			setButton(13, new Button(Material.ENDER_PEARL, (e, i) -> {
 				e.getWhoClicked().openInventory(new HomeList(pd, "home ").getInventory());
 			}, "§r§dGo to Home"));
 			
