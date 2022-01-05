@@ -1,18 +1,21 @@
 package net.pgfmc.masterbook.masterbook;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 
 import net.pgfmc.core.DimManager;
 import net.pgfmc.core.cmd.Blocked;
 import net.pgfmc.core.inventoryAPI.BaseInventory;
-import net.pgfmc.core.inventoryAPI.Button;
-import net.pgfmc.core.inventoryAPI.PagedInventory;
-import net.pgfmc.core.inventoryAPI.SizeData;
+import net.pgfmc.core.inventoryAPI.ListInventory;
+import net.pgfmc.core.inventoryAPI.extra.Button;
+import net.pgfmc.core.inventoryAPI.extra.SizeData;
 import net.pgfmc.core.playerdataAPI.PlayerData;
 import net.pgfmc.core.requestAPI.Requester;
 import net.pgfmc.core.requestAPI.Requester.Reason;
@@ -22,17 +25,25 @@ import net.pgfmc.teams.friends.Friends;
 import net.pgfmc.teams.friends.Friends.Relation;
 import net.pgfmc.teleport.home.Homes;
 
-public class CommandsMenu {
+public class CommandsMenu implements InventoryHolder {
 	
 	private static boolean TEAMINIT = false;
 	
-	public static class Homepage extends BaseInventory {
+	private PlayerData pd;
+	
+	public CommandsMenu(PlayerData pd) {
+		this.pd = pd;
+	}
+	
+	public class Homepage extends BaseInventory {
 		
-		public Homepage(PlayerData pd) {
+		public Homepage() {
 			super(SizeData.SMALL, "Commands");
 			if (!TEAMINIT) {
 				TEAMINIT = (Bukkit.getServer().getPluginManager().getPlugin("Teams").isEnabled());
 			}
+			
+			
 			
 			pd.getPlayer().getEffectivePermissions().forEach( x-> {
 				/* 
@@ -67,14 +78,14 @@ public class CommandsMenu {
 						setButton(3, new Button(Material.BLUE_ICE, (e, i) -> {
 							
 							((Player) e.getWhoClicked()).performCommand("afk");
-							e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+							e.getWhoClicked().openInventory(new Homepage().getInventory());
 						}, "§r§7AFK: §aEnabled", "§r§7Click to disable!"));
 					} else {
 						setButton(3, new Button(Material.ICE, (e, i) -> {
 
 							
 							((Player) e.getWhoClicked()).performCommand("afk");
-							e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+							e.getWhoClicked().openInventory(new Homepage().getInventory());
 						}, "§r§7AFK: §cDisabled", "§r§7Click to enable!"));
 					}
 				}
@@ -142,7 +153,7 @@ public class CommandsMenu {
 						}, "§r§5Tpa", "§r§cNo players online."));
 					} else {
 						setButton(21, new Button(Material.ENDER_PEARL, (e, i) -> {
-							e.getWhoClicked().openInventory(new TpaList(pd).getInventory());
+							e.getWhoClicked().openInventory(new TpaList().getInventory());
 						}, "§r§5Tpa", "§r§7Teleport to another player!"));
 					}
 					
@@ -158,7 +169,7 @@ public class CommandsMenu {
 				 */
 				if (x.getPermission().equals("teams.friend.*") && x.getValue() && TEAMINIT) {
 					setButton(23, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
-						e.getWhoClicked().openInventory(new FriendsList(pd).getInventory());
+						e.getWhoClicked().openInventory(new FriendsList().getInventory());
 					}, "§r§6Friends"));
 				}
 				
@@ -182,6 +193,7 @@ public class CommandsMenu {
 				 * [] [] [] [] [] [] [] [] []
 				 * home menu
 				 */
+				
 				//List<Role> roles = pd.getData("Roles");
 				
 				
@@ -220,7 +232,7 @@ public class CommandsMenu {
 	 * @author CrimsonDart
 	 *
 	 */
-	private static class DiscordConfirm extends BaseInventory {
+	private class DiscordConfirm extends BaseInventory {
 		
 		public DiscordConfirm(PlayerData pd) {
 			super(SizeData.SMALL, "§r§8Unlink Account?");
@@ -233,17 +245,17 @@ public class CommandsMenu {
 			setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
 				// p.closeInventory(); // I think it is better if the unlink doesn't close the inventory
 				((Player) e.getWhoClicked()).performCommand("unlink");
-				e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+				e.getWhoClicked().openInventory(new Homepage().getInventory());
 			}, "§r§cUnlink"));
 			
 			// cancel button.
 			setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
-				e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+				e.getWhoClicked().openInventory(new Homepage().getInventory());
 			}, "§r§7Cancel"));
 		}
 	}
 	
-	private static class BackConfirm extends BaseInventory {
+	private class BackConfirm extends BaseInventory {
 		public BackConfirm(PlayerData pd) {
 			super(SizeData.SMALL, "§r§8Tp to last location?");
 			
@@ -254,44 +266,48 @@ public class CommandsMenu {
 			
 			setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
 				e.getWhoClicked().closeInventory();
-				e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+				e.getWhoClicked().openInventory(new Homepage().getInventory());
 			}, "§r§7Cancel"));
 		}
 	}
 	
-	private static class DimSelect extends PagedInventory {
+	private class DimSelect extends ListInventory {
 		
 		public DimSelect(PlayerData pd) {
-			super(SizeData.SMALL, "§r§5Dimension Select", DimManager.getAllWorlds(false).stream()
+			super(SizeData.SMALL, "§r§5Dimension Select");
+			setBackButton(new Homepage());
+		}
+
+		@Override
+		public List<Button> load() {
+			
+			return DimManager.getAllWorlds(false).stream()
 					.map( x-> {
 						return new Button(Material.ENDER_PEARL, (e, i) -> {
 							((Player) e.getWhoClicked()).performCommand("goto " + x.getName());
 						}, "§r§9" + x.getName());
 					})
-					.collect(Collectors.toList())
-			);
-			setBackButton(new Homepage(pd));
+					.collect(Collectors.toList());
 		}
-		
 	}
 	
-	private static class HomeMenu extends BaseInventory {
+	private class HomeMenu extends BaseInventory {
 		
 		public HomeMenu(PlayerData pd) {
 			super(SizeData.SMALL, "§r§8Home");
 			
 			setButton(0, new Button(Material.FEATHER, (e, i) -> {
-				e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+				e.getWhoClicked().openInventory(new Homepage().getInventory());
 			}, "§r§7Back"));
 			
 			setButton(13, new Button(Material.ENDER_PEARL, (e, i) -> {
-				e.getWhoClicked().openInventory(new HomeList(pd, "home ").getInventory());
+				e.getWhoClicked().openInventory(new HomeList("home ").getInventory());
 			}, "§r§dGo to Home"));
 			
 			if (!(Homes.getHomes(pd.getOfflinePlayer()).size() >= 3)) {
 				
 				setButton(11, new Button(Material.OAK_SAPLING, (e, i) -> {
-					e.getWhoClicked().openInventory(new SetConfirm(pd).getInventory());
+					e.getWhoClicked().openInventory(new SetConfirm().getInventory());
 				}, "§r§aSet Home"));
 			}
 			
@@ -300,19 +316,25 @@ public class CommandsMenu {
 			}, "§r§cDelete Home"));
 		}
 		
-		private static class HomeList extends PagedInventory {
+		private class HomeList extends ListInventory {
+			String dingus;
 			
-			public HomeList(PlayerData pd, String dingus) {
-				super(SizeData.SMALL, "§r§8Home Select", Homes.getHomes(pd.getPlayer()).keySet().stream()
+			public HomeList(String dingus) {
+				super(SizeData.SMALL, "§r§8Home Select");
+				this.dingus = dingus;
+				setBackButton(new HomeMenu(pd));
+			}
+
+			@Override
+			public List<Button> load() {
+				return Homes.getHomes(pd.getPlayer()).keySet().stream()
 						.map(x-> {
 							return new Button(Material.PAPER,  (e, i) -> {
 								((Player) e.getWhoClicked()).performCommand(dingus + x);
 								e.getWhoClicked().closeInventory();
 							}, x);
 						})
-						.collect(Collectors.toList())
-				);
-				setBackButton(new HomeMenu(pd));
+						.collect(Collectors.toList());
 			}
 		}
 		
@@ -323,8 +345,8 @@ public class CommandsMenu {
 		 * {@link net.pgfmc.core.ChatEvents}
 		 *
 		 */
-		private static class SetConfirm extends BaseInventory {
-			public SetConfirm(PlayerData pd) {
+		private class SetConfirm extends BaseInventory {
+			public SetConfirm() {
 				super(SizeData.SMALL, "§r§8Set home here?");
 				
 				setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
@@ -354,59 +376,69 @@ public class CommandsMenu {
 		}
 		
 		
-		private static class DelList extends PagedInventory {
+		private class DelList extends ListInventory {
 			
 			public DelList(PlayerData pd) {
-				super(SizeData.SMALL, "§r§8Delete Home", Homes.getHomes(pd.getPlayer()).keySet().stream()
+				super(SizeData.SMALL, "§r§8Delete Home");
+				
+				setBackButton(new HomeMenu(pd));
+			}
+
+			@Override
+			public List<Button> load() {
+				return Homes.getHomes(pd.getPlayer()).keySet().stream()
 						.map(x-> {
 							return new Button(Material.PAPER, (e, i) -> {
 								((Player) e.getWhoClicked()).performCommand("delhome " + x);
 								e.getWhoClicked().openInventory(new DelList(pd).getInventory());
 							}, "§r§a" + x);
 						})
-						.collect(Collectors.toList()));
-				
-				setBackButton(new HomeMenu(pd));
+						.collect(Collectors.toList());
 			}
 		}
-		
 	}
 	
-	private static class TpaList extends PagedInventory {
-		public TpaList(PlayerData pd) {
-			super(SizeData.SMALL, "§r§8Select who to teleport to!", Bukkit.getOnlinePlayers().stream()
+	private class TpaList extends ListInventory {
+		public TpaList() {
+			super(SizeData.SMALL, "§r§8Select who to teleport to!");
+			setBackButton(new Homepage());
+		}
+
+		@Override
+		public List<Button> load() {
+			return Bukkit.getOnlinePlayers().stream()
 					.filter(x-> {
 						return (!x.getUniqueId().toString().equals(pd.getUniqueId().toString()));
 					})
 					.map( (x) -> {
 						return new Button(Material.PLAYER_HEAD, (e, i) -> {
 							((Player) e.getWhoClicked()).performCommand("tpa " + x.getName());
-							e.getWhoClicked().openInventory(new Homepage(pd).getInventory());
+							e.getWhoClicked().openInventory(new Homepage().getInventory());
 						}, "§r§a" + x.getName());
 					})
-					.collect(Collectors.toList())
-			);
-			
-			setBackButton(new Homepage(pd));
+					.collect(Collectors.toList());
 		}
 	}
 	
-	public static class FriendsList extends PagedInventory {
+	public class FriendsList extends ListInventory {
 		
-		public FriendsList(PlayerData player) {
-			super(SizeData.SMALL, "§r§8Friends List", 
-					Friends.getFriendsMap(player).keySet().stream().map((x) -> {
-				return new Button(Material.PAPER, (e, i) -> {
-					
-					e.getWhoClicked().openInventory(new FriendOptions(player, x).getInventory());
-					
-				}, "§r" + x.getRankedName() );
-			}).collect(Collectors.toList()));
-			
-			setBackButton(new Homepage(player));
+		public FriendsList() {
+			super(SizeData.SMALL, "§r§8Friends List");
+			setBackButton(new Homepage());
 		}
 		
-		public static class FriendOptions extends BaseInventory {
+		@Override
+		public List<Button> load() {
+			return Friends.getFriendsMap(pd).keySet().stream().map((x) -> {
+				return new Button(Material.PAPER, (e, i) -> {
+					
+					e.getWhoClicked().openInventory(new FriendOptions(pd, x).getInventory());
+					
+				}, "§r" + x.getRankedName() );
+			}).collect(Collectors.toList());
+		}
+		
+		public class FriendOptions extends BaseInventory {
 
 			public FriendOptions(PlayerData player, PlayerData friend) {
 				super(SizeData.SMALL, "§r§8Options for " + friend.getRankedName());
@@ -446,12 +478,20 @@ public class CommandsMenu {
 				}
 			}
 		}
+
+		
 	}
 	
-	public static class PlayerList extends PagedInventory {
+	public class PlayerList extends ListInventory {
 		
 		public PlayerList(PlayerData pd) {
-			super(SizeData.SMALL, "§r§8Player List", PlayerData.stream()
+			super(SizeData.SMALL, "§r§8Player List");
+			setBackButton(new Homepage());
+		}
+		
+		@Override
+		public List<Button> load() {
+			return PlayerData.stream()
 					.filter(x-> {
 						return (x != pd);
 					})
@@ -465,20 +505,20 @@ public class CommandsMenu {
 							if (r1 == r2) { // both are equal.
 								return 0;
 							} else if (r1 == Relation.NONE && r2 != Relation.NONE) { // r2 friended &^ but not r1.
-								return -1;
+								return 1;
 							} else if (r1 != Relation.NONE && r2 == Relation.NONE) { // r1 friended &^ but not r2.
-								return 1;
-							} else if (r1 == Relation.FRIEND && r2 == Relation.FAVORITE) {
 								return -1;
-							} else if (r1 == Relation.FAVORITE && r2 == Relation.FRIEND) {
+							} else if (r1 == Relation.FRIEND && r2 == Relation.FAVORITE) {
 								return 1;
+							} else if (r1 == Relation.FAVORITE && r2 == Relation.FRIEND) {
+								return -1;
 							} else {
 								return 0;
 							}
 						} else if (o1.isOnline()) { // 1 is online
-							return 1;
-						} else if (o2.isOnline()) { // 2 is online
 							return -1;
+						} else if (o2.isOnline()) { // 2 is online
+							return 1;
 						} else { // ------------------ none are online
 							Relation r1 = Friends.getRelation(pd, o1);
 							Relation r2 = Friends.getRelation(pd, o2);
@@ -486,13 +526,13 @@ public class CommandsMenu {
 							if (r1 == r2) { // both are equal.
 								return 0;
 							} else if (r1 == Relation.NONE && r2 != Relation.NONE) { // r2 friended &^ but not r1.
-								return -1;
+								return 1;
 							} else if (r1 != Relation.NONE && r2 == Relation.NONE) { // r1 friended &^ but not r2.
-								return 1;
-							} else if (r1 == Relation.FRIEND && r2 == Relation.FAVORITE) {
 								return -1;
-							} else if (r1 == Relation.FAVORITE && r2 == Relation.FRIEND) {
+							} else if (r1 == Relation.FRIEND && r2 == Relation.FAVORITE) {
 								return 1;
+							} else if (r1 == Relation.FAVORITE && r2 == Relation.FRIEND) {
+								return -1;
 							} else {
 								return 0;
 							}
@@ -505,13 +545,10 @@ public class CommandsMenu {
 						
 						);
 					})
-					.collect(Collectors.toList())
-			);
-			
-			setBackButton(new Homepage(pd));
+					.collect(Collectors.toList());
 		}
 		
-		private static class PlayerOptions extends BaseInventory {
+		private class PlayerOptions extends BaseInventory {
 			
 			public PlayerOptions(PlayerData pd, PlayerData player) {
 				super(SizeData.SMALL, player.getRankedName());
@@ -571,7 +608,7 @@ public class CommandsMenu {
 				});
 			}
 			
-			private static class FriendConfirm extends BaseInventory {
+			private class FriendConfirm extends BaseInventory {
 				
 				public FriendConfirm(PlayerData pd, PlayerData player) {
 					super(SizeData.SMALL, "§r§6Friend " + player.getName() + "?");
@@ -588,7 +625,7 @@ public class CommandsMenu {
 				}
 			}
 			
-			private static class UnfriendConfirm extends BaseInventory {
+			private class UnfriendConfirm extends BaseInventory {
 				
 				public UnfriendConfirm(PlayerData pd, PlayerData player) {
 					super(SizeData.SMALL, "§r§cUnfriend " + player.getName() + "?");
@@ -605,27 +642,41 @@ public class CommandsMenu {
 				}
 			}
 		}
+
+		
 	}
 	
-	public static class RequestList extends PagedInventory {
+	public class RequestList extends ListInventory {
 		public RequestList(PlayerData pd) {
-			super(SizeData.SMALL, "Pending Requests", Requester.ALLREQUESTS.stream()
-					.filter(x-> {
-						return (x.getTarget() == pd);
-					})
-					.map( x -> {
-						return new Button(Material.ARROW, (e, i) -> {
-							if (x.expireNow(Reason.Accept) != false) {
-								x.act();
-							} else {
-								pd.playSound(Sound.BLOCK_NOTE_BLOCK_BASS);
-								e.getWhoClicked().openInventory(new RequestList(pd).getInventory());
-							}
-						}, x.getParent().getName());
-					})
-					.collect(Collectors.toList())
-			);
-			setBackButton(new Homepage(pd));
+			super(SizeData.SMALL, "Pending Requests");
+			setBackButton(new Homepage());
 		}
+
+		@Override
+		public List<Button> load() {
+			Requester.ALLREQUESTS.stream()
+			.filter(x-> {
+				return (x.getTarget() == pd);
+			})
+			.map( x -> {
+				return new Button(Material.ARROW, (e, i) -> {
+					if (x.expireNow(Reason.Accept) != false) {
+						x.act();
+					} else {
+						pd.playSound(Sound.BLOCK_NOTE_BLOCK_BASS);
+						e.getWhoClicked().openInventory(new RequestList(pd).getInventory());
+					}
+				}, x.getParent().getName());
+			})
+			.collect(Collectors.toList());
+			
+			
+			return null;
+		}
+	}
+
+	@Override
+	public Inventory getInventory() {
+		return new Homepage().getInventory();
 	}
 }
