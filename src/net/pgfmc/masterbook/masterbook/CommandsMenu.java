@@ -43,8 +43,6 @@ public class CommandsMenu implements InventoryHolder {
 				TEAMINIT = (Bukkit.getServer().getPluginManager().getPlugin("Teams").isEnabled());
 			}
 			
-			
-			
 			pd.getPlayer().getEffectivePermissions().forEach( x-> {
 				/* 
 				 * [] [] XX [] [] [] [] [] []
