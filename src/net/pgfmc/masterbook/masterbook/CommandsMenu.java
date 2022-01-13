@@ -799,7 +799,6 @@ public class CommandsMenu implements InventoryHolder {
 
 		@Override
 		protected Butto toAction(Request entry, int slot) {
-			// TODO Auto-generated method stub
 			return (p, e) -> {
 				if (entry.expireNow(Reason.Accept) != false) {
 					entry.act();
