@@ -1,22 +1,28 @@
 package net.pgfmc.masterbook.masterbook;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.permissions.PermissionAttachmentInfo;
 
 import net.pgfmc.core.DimManager;
 import net.pgfmc.core.cmd.Blocked;
 import net.pgfmc.core.inventoryAPI.BaseInventory;
 import net.pgfmc.core.inventoryAPI.ListInventory;
-import net.pgfmc.core.inventoryAPI.extra.Button;
+import net.pgfmc.core.inventoryAPI.extra.Butto;
+import net.pgfmc.core.inventoryAPI.extra.ItemWrapper;
 import net.pgfmc.core.inventoryAPI.extra.SizeData;
 import net.pgfmc.core.playerdataAPI.PlayerData;
+import net.pgfmc.core.requestAPI.Request;
 import net.pgfmc.core.requestAPI.Requester;
 import net.pgfmc.core.requestAPI.Requester.Reason;
 import net.pgfmc.masterbook.Main;
@@ -33,191 +39,219 @@ public class CommandsMenu implements InventoryHolder {
 	
 	public CommandsMenu(PlayerData pd) {
 		this.pd = pd;
+		if (!TEAMINIT) {
+			TEAMINIT = (Bukkit.getServer().getPluginManager().getPlugin("Teams").isEnabled());
+		}
 	}
 	
 	public class Homepage extends BaseInventory {
 		
 		public Homepage() {
 			super(SizeData.SMALL, "Commands");
-			if (!TEAMINIT) {
-				TEAMINIT = (Bukkit.getServer().getPluginManager().getPlugin("Teams").isEnabled());
+			
+			List<String> perms = new ArrayList<>();
+			
+			for (PermissionAttachmentInfo s : pd.getPlayer().getEffectivePermissions()) {
+				if (s.getValue()) {
+					perms.add(s.getPermission());
+				}
 			}
 			
-			pd.getPlayer().getEffectivePermissions().forEach( x-> {
-				/* 
-				 * [] [] XX [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 */
-				if (x.getPermission().equals("pgf.cmd.link") && x.getValue()) {
+			/* 
+			 * [] [] XX [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 */
+			if (perms.contains("pgf.cmd.link")) {
+				
+				if (pd.getData("Discord") != null) {
 					
-					if (pd.getData("Discord") != null) {
-						setButton(2, new Button(Material.AMETHYST_SHARD, (e, i) -> {
-							e.getWhoClicked().openInventory(new DiscordConfirm(pd).getInventory());
-						}, "§dUnlink Discord"));
-					} else {
-						setButton(2, new Button(Material.QUARTZ, (e, i) -> {
-							e.getWhoClicked().closeInventory();
-							((Player) e.getWhoClicked()).performCommand("link");
-						}, "§dLink Discord"));
-					}
+					setAction(2, (p, e) -> {
+						p.openInventory(new DiscordConfirm(pd).getInventory());
+					});
 					
-				} else 
+					setItem(2, Material.AMETHYST_SHARD).n("§dUnlink Discord");
 				
-				/* 
-				 * [] [] [] XX [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * toggles AFK in-menu
-				 */
-				if (x.getPermission().equals("pgf.cmd.afk") && x.getValue()) {
+				} else {
 					
-					if (Afk.isAfk(pd.getPlayer())) {
-						setButton(3, new Button(Material.BLUE_ICE, (e, i) -> {
-							
-							((Player) e.getWhoClicked()).performCommand("afk");
-							e.getWhoClicked().openInventory(new Homepage().getInventory());
-						}, "§r§7AFK: §aEnabled", "§r§7Click to disable!"));
-					} else {
-						setButton(3, new Button(Material.ICE, (e, i) -> {
-
-							
-							((Player) e.getWhoClicked()).performCommand("afk");
-							e.getWhoClicked().openInventory(new Homepage().getInventory());
-						}, "§r§7AFK: §cDisabled", "§r§7Click to enable!"));
-					}
+					setAction(2, (p, e) -> {
+						p.closeInventory();
+						p.performCommand("link");
+					});
+					setItem(2, Material.QUARTZ).n("§dLink Discord");
 				}
+			}
+			
+			/* 
+			 * [] [] [] XX [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * toggles AFK in-menu
+			 */
+			if (perms.contains("pgf.cmd.afk")) {
 				
-				/* 
-				 * [] [] [] [] [] XX [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * Back command
-				 */
-				if (x.getPermission().equals("pgf.cmd.back") && x.getValue()) {
-					setButton(5, new Button(Material.ARROW, (e, i) -> {
-						e.getWhoClicked().openInventory(new BackConfirm(pd).getInventory());
-					}, "§r§4Back", "§r§7Go back to your last location"));
-				}
-				
-				/* 
-				 * [] [] [] [] [] [] XX [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * shows the current world's seed on screen.
-				 */
-				
-				setButton(6, new Button(Material.BOOK, (e, i) -> {
-					e.getWhoClicked().closeInventory();
-					((Player) e.getWhoClicked()).openBook(Guidebook.getCopmleteBook());
-				}, "§r§dInfo", "§r§7Bring up the guidebook"));
-				
-				
-				/* 
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] XX [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * /dim command
-				 */
-				if (x.getPermission().equals("pgf.cmd.goto") && x.getValue()) {
-					setButton(13, new Button(Material.SPYGLASS, (e, i) -> {
-						e.getWhoClicked().openInventory(new DimSelect(pd).getInventory());
-					}, "§r§9Dimensions", "§r§7Go to other worlds!"));
-				}
-				
-				/* 
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] XX [] [] [] [] [] []
-				 * home menu
-				 */
-				if (x.getPermission().equals("pgf.cmd.home.*") && x.getValue()) {
-					setButton(20, new Button(Material.COMPASS, (e, i) -> {
-						e.getWhoClicked().openInventory(new HomeMenu(pd).getInventory());
-					}, "§r§eHomes"));
-				}
-				
-				/* 
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] XX [] [] [] [] []
-				 * home menu
-				 */
-				if (x.getPermission().equals("pgf.cmd.tp.tpa") && x.getValue()) {
+				if (Afk.isAfk(pd.getPlayer())) {
 					
-					if (Bukkit.getOnlinePlayers().size() == 1) {
-						setButton(21, new Button(Material.GRAY_CONCRETE, (e, i) -> {
-							pd.playSound(Sound.BLOCK_NOTE_BLOCK_PLING);
-						}, "§r§5Tpa", "§r§cNo players online."));
-					} else {
-						setButton(21, new Button(Material.ENDER_PEARL, (e, i) -> {
-							e.getWhoClicked().openInventory(new TpaList().getInventory());
-						}, "§r§5Tpa", "§r§7Teleport to another player!"));
-					}
+					setAction(3, (p, e) -> {
+						
+						p.performCommand("afk");
+						p.openInventory(new Homepage().getInventory());
+					});
 					
-					
-					
+					setItem(3, Material.BLUE_ICE).n("§r§7AFK: §aEnabled").l("§r§7Click to disable!");
+				} else {
+					setAction(3, (p, e) -> {
+						p.performCommand("afk");
+						p.openInventory(new Homepage().getInventory());
+					});
+					setItem(3, Material.ICE).n("§r§7AFK: §cDisabled").l("§r§7Click to enable!");
 				}
+			}
+			
+			/* 
+			 * [] [] [] [] [] XX [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * Back command
+			 */
+			if (perms.contains("pgf.cmd.back")) {
 				
-				/* 
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] XX [] [] []
-				 * home menu
-				 */
-				if (x.getPermission().equals("teams.friend.*") && x.getValue() && TEAMINIT) {
-					setButton(23, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
-						e.getWhoClicked().openInventory(new FriendsList().getInventory());
-					}, "§r§6Friends"));
-				}
+				setAction(5, (p, e) -> {
+					p.openInventory(new BackConfirm(pd).getInventory());
+				});
 				
-				/* 
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] XX [] []
-				 * home menu
-				 */
-				if (x.getPermission().equals("bukkit.command.list") && x.getValue() && TEAMINIT) {
-					setButton(24, new Button(Material.PLAYER_HEAD, (e, i) -> {
-						e.getWhoClicked().openInventory(new PlayerList(pd).getInventory());
-					}, "§r§bPlayer List"));
-				}
-				
-				// Other buttons -
-				
-				/* 
-				 * [] [] [] [] XX [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * home menu
-				 */
-				
-				//List<Role> roles = pd.getData("Roles");
-				
-				
-				
-				
-				//if (roles != null) {
-				//	setButton(4, new Button(Material.EMERALD, PermissionsManager.getRolePrefix(roles.get(0)) + roles.get(0)));
-				//};
-				
-				/* 
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] [] [] [] [] []
-				 * [] [] [] [] XX [] [] [] []
-				 * home menu
-				 */
-				if (x.getPermission().equals("pgf.cmd.donator.echest") && x.getValue()) {
-					setButton(22, new Button(Material.ENDER_CHEST, (e, i) -> {
-						e.getWhoClicked().closeInventory();
-						((Player) e.getWhoClicked()).performCommand("echest");
-					}, "§r§3Ender Chest", "§r§9VIP perk!"));
-				}
-				
-				setButton(9, new Button(Material.LEVER, (e, i) -> {
-					e.getWhoClicked().openInventory(new RequestList(pd).getInventory());
-				}, "§r§4Requests"));
+				setItem(5, Material.ARROW).n("§r§4Back").l("§r§7Go back to your last location");
+			}
+			
+			/* 
+			 * [] [] [] [] [] [] XX [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * shows the current world's seed on screen.
+			 */
+			setAction(6, (p, e) -> {
+				p.closeInventory();
+				p.openBook(Guidebook.getCopmleteBook());
 			});
+			setItem(6, Material.BOOK).n("§r§dInfo").l("§r§7Bring up the guidebook");
+			
+			
+			/* 
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] XX [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * /dim command
+			 */
+			if (perms.contains("pgf.cmd.goto")) {
+				
+				setAction(13, (p, e) -> {
+					p.openInventory(new DimSelect(pd).getInventory());
+				});
+				setItem(13, Material.SPYGLASS).n("§r§9Dimensions").l("§r§7Go to other worlds!");
+			}
+			
+			/* 
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] XX [] [] [] [] [] []
+			 * home menu
+			 */
+			if (perms.contains("pgf.cmd.home.*")) {
+				setAction(20, (p, e) -> {
+					p.openInventory(new HomeMenu(pd).getInventory());
+				});
+				setItem(20, Material.COMPASS).n("§r§eHomes");
+			}
+			
+			/* 
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] XX [] [] [] [] []
+			 * home menu
+			 */
+			if (perms.contains("pgf.cmd.tp.tpa")) {
+				
+				if (Bukkit.getOnlinePlayers().size() == 1) {
+					
+					setAction(21, (p, e) -> {
+						pd.playSound(Sound.BLOCK_NOTE_BLOCK_PLING);
+					});
+					setItem(21, Material.GRAY_CONCRETE).n("§r§5Tpa").l("§r§cNo players online.");
+					
+				} else {
+					
+					setAction(21, (p, e) -> {
+						p.openInventory(new TpaList().getInventory());
+					});
+					setItem(21, Material.ENDER_PEARL).n("§r§5Tpa").l("§r§7Teleport to another player!");
+				}
+				
+				
+				
+			}
+			
+			/* 
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] XX [] [] []
+			 * home menu
+			 */
+			if (perms.contains("teams.friend.*") && TEAMINIT) {
+				
+				setAction(23, (p, e) -> {
+					p.openInventory(new FriendsList().getInventory());
+				});
+				setItem(23, Material.TOTEM_OF_UNDYING).n("§r§6Friends");
+			}
+			
+			/* 
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] XX [] []
+			 * home menu
+			 */
+			if (perms.contains("bukkit.command.list") && TEAMINIT) {
+				
+				setAction(24, (p, e) -> {
+					p.openInventory(new PlayerList().getInventory());
+				});
+				setItem(24, Material.PLAYER_HEAD).n("§r§bPlayer List");
+			}
+			
+			// Other buttons -
+			
+			/* 
+			 * [] [] [] [] XX [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * home menu
+			 */
+			
+			//List<Role> roles = pd.getData("Roles");
+			
+			//if (roles != null) {
+			//	setButton(4, new Button(Material.EMERALD, PermissionsManager.getRolePrefix(roles.get(0)) + roles.get(0)));
+			//};
+			
+			/* 
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] [] [] [] [] []
+			 * [] [] [] [] XX [] [] [] []
+			 * home menu
+			 */
+			if (perms.contains("pgf.cmd.donator.echest")) {
+				
+				setAction(22, (p, e) -> {
+					p.closeInventory();
+					p.performCommand("echest");
+				});
+				setItem(22, Material.ENDER_CHEST).n("§r§3Ender Chest").l("§r§9VIP perk!");
+			}
+			
+			setAction(9, (p, e) -> {
+				p.openInventory(new RequestList(pd).getInventory());
+			});
+			setItem(9, Material.LEVER).n("§r§4Requests");
 		}
 	}
 	
@@ -240,16 +274,18 @@ public class CommandsMenu implements InventoryHolder {
 			 * sets buttons to the already-coded commands, because there is no difference. 
 			 */
 			
-			setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
-				// p.closeInventory(); // I think it is better if the unlink doesn't close the inventory
-				((Player) e.getWhoClicked()).performCommand("unlink");
-				e.getWhoClicked().openInventory(new Homepage().getInventory());
-			}, "§r§cUnlink"));
 			
-			// cancel button.
-			setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
-				e.getWhoClicked().openInventory(new Homepage().getInventory());
-			}, "§r§7Cancel"));
+			setAction(11, (p, e) -> {
+				p.closeInventory(); // I think it is better if the unlink doesn't close the inventory
+				p.performCommand("unlink");
+				p.openInventory(new Homepage().getInventory());
+			});
+			setItem(11, Material.LIME_CONCRETE).n("§r§cUnlink");
+			
+			setAction(15, (p, e) -> {
+				p.openInventory(new Homepage().getInventory());
+			});
+			setItem(15, Material.RED_CONCRETE).n("§r§7Cancel");
 		}
 	}
 	
@@ -257,35 +293,46 @@ public class CommandsMenu implements InventoryHolder {
 		public BackConfirm(PlayerData pd) {
 			super(SizeData.SMALL, "§r§8Tp to last location?");
 			
-			setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
-				e.getWhoClicked().closeInventory();
-				((Player) e.getWhoClicked()).performCommand("back");
-			}, "§r§dTeleport"));
+			setAction(11, (p, e) -> {
+				p.closeInventory();
+				p.performCommand("back");
+			});
+			setItem(11, Material.LIME_CONCRETE).n("§r§dTeleport");
 			
-			setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
-				e.getWhoClicked().closeInventory();
-				e.getWhoClicked().openInventory(new Homepage().getInventory());
-			}, "§r§7Cancel"));
+			setAction(15, (p, e) -> {
+				p.closeInventory();
+				p.openInventory(new Homepage().getInventory());
+			});
+			setItem(15, Material.RED_CONCRETE).n("§r§7Cancel");
 		}
 	}
 	
-	private class DimSelect extends ListInventory {
+	private class DimSelect extends ListInventory<World> {
 		
 		public DimSelect(PlayerData pd) {
 			super(SizeData.SMALL, "§r§5Dimension Select");
-			setBackButton(new Homepage());
+			
+			setAction(0, (p, e) -> {
+				p.openInventory(new Homepage().getInventory());
+			});
+			setItem(0, Material.FEATHER).n("§r§7Back");
 		}
 
 		@Override
-		public List<Button> load() {
-			
-			return DimManager.getAllWorlds(false).stream()
-					.map( x-> {
-						return new Button(Material.ENDER_PEARL, (e, i) -> {
-							((Player) e.getWhoClicked()).performCommand("goto " + x.getName());
-						}, "§r§9" + x.getName());
-					})
-					.collect(Collectors.toList());
+		public List<World> load() {
+			return DimManager.getAllWorlds(false);
+		}
+
+		@Override
+		protected Butto toAction(World entry, int slot) {
+			return (p, e) -> {
+				p.performCommand("goto " + entry.getName());
+			};
+		}
+
+		@Override
+		protected ItemStack toItem(World entry) {
+			return new ItemWrapper(Material.ENDER_PEARL).n("§r§9" + entry.getName()).gi();
 		}
 	}
 	
@@ -294,45 +341,66 @@ public class CommandsMenu implements InventoryHolder {
 		public HomeMenu(PlayerData pd) {
 			super(SizeData.SMALL, "§r§8Home");
 			
-			setButton(0, new Button(Material.FEATHER, (e, i) -> {
-				e.getWhoClicked().openInventory(new Homepage().getInventory());
-			}, "§r§7Back"));
+			setAction(0, (p, e) -> {
+				p.openInventory(new Homepage().getInventory());
+			});
+			setItem(0, Material.FEATHER).n("§r§7Back");
 			
-			setButton(13, new Button(Material.ENDER_PEARL, (e, i) -> {
-				e.getWhoClicked().openInventory(new HomeList("home ").getInventory());
-			}, "§r§dGo to Home"));
+			setAction(13, (p, e) -> {
+				p.openInventory(new HomeList("home ").getInventory());
+			});
+			setItem(13, Material.ENDER_PEARL).n("§r§dGo to Home");
 			
 			if (!(Homes.getHomes(pd.getOfflinePlayer()).size() >= 3)) {
 				
-				setButton(11, new Button(Material.OAK_SAPLING, (e, i) -> {
-					e.getWhoClicked().openInventory(new SetConfirm().getInventory());
-				}, "§r§aSet Home"));
+				setAction(11, (p, e) -> {
+					p.openInventory(new SetConfirm().getInventory());
+				});
+				setItem(11, Material.OAK_SAPLING).n("§r§aSet Home");
+				
 			}
 			
-			setButton(15, new Button(Material.FLINT_AND_STEEL, (e, i) -> {
-				e.getWhoClicked().openInventory(new DelList(pd).getInventory());
-			}, "§r§cDelete Home"));
+			setAction(15, (p, e) -> {
+				p.openInventory(new DelList(pd).getInventory());
+			});
+			setItem(15, Material.FLINT_AND_STEEL).n("§r§cDelete Home");
 		}
 		
-		private class HomeList extends ListInventory {
+		private class HomeList extends ListInventory<String> {
 			String dingus;
 			
 			public HomeList(String dingus) {
 				super(SizeData.SMALL, "§r§8Home Select");
 				this.dingus = dingus;
-				setBackButton(new HomeMenu(pd));
+
+				setAction(0, (p, e) -> {
+					p.openInventory(new Homepage().getInventory());
+				});
+				setItem(0, Material.FEATHER).n("§r§7Back");
 			}
 
 			@Override
-			public List<Button> load() {
-				return Homes.getHomes(pd.getPlayer()).keySet().stream()
-						.map(x-> {
-							return new Button(Material.PAPER,  (e, i) -> {
-								((Player) e.getWhoClicked()).performCommand(dingus + x);
-								e.getWhoClicked().closeInventory();
-							}, x);
-						})
-						.collect(Collectors.toList());
+			public List<String> load() {
+				
+				List<String> list = new ArrayList<>();
+				for (String s : Homes.getHomes(pd.getPlayer()).keySet()) {
+					list.add(s);
+				}
+				return list;
+			}
+
+			@Override
+			protected Butto toAction(String entry, int slot) {
+				
+				return (p, e) -> {
+					p.performCommand(dingus + entry);
+					p.closeInventory();
+				};
+			}
+
+			@Override
+			protected ItemStack toItem(String entry) {
+				return new ItemWrapper(Material.PAPER).n(entry).gi();
 			}
 		}
 		
@@ -347,9 +415,9 @@ public class CommandsMenu implements InventoryHolder {
 			public SetConfirm() {
 				super(SizeData.SMALL, "§r§8Set home here?");
 				
-				setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
+				setAction(11, (p, e) -> {
 					pd.setData("tempHomeLocation", pd.getPlayer().getLocation());
-					e.getWhoClicked().closeInventory();
+					p.closeInventory();
 					pd.sendMessage("§r§dType into chat to set the name of your Home!");
 					pd.sendMessage("§r§dYou can only name the home for 4 minutes.");
 					
@@ -365,130 +433,190 @@ public class CommandsMenu implements InventoryHolder {
 						}
 						
 					}, 20 * 60 * 4);
-				}, "§r§aSet Home"));
+				});
+				setItem(11, Material.LIME_CONCRETE).n("§r§aSet Home");
 				
-				setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
-					e.getWhoClicked().openInventory(new HomeMenu(pd).getInventory());
-				}, "§r§7Cancel"));
+				setAction(15, (p, e) -> {
+					p.openInventory(new HomeMenu(pd).getInventory());
+				});
+				setItem(15, Material.RED_CONCRETE).n("§r§7Cancel");
 			}
 		}
 		
 		
-		private class DelList extends ListInventory {
+		private class DelList extends ListInventory<String> {
 			
 			public DelList(PlayerData pd) {
 				super(SizeData.SMALL, "§r§8Delete Home");
 				
-				setBackButton(new HomeMenu(pd));
+				setAction(0, (p, e) -> {
+					p.openInventory(new Homepage().getInventory());
+				});
+				setItem(0, Material.FEATHER).n("§r§7Back");
 			}
 
 			@Override
-			public List<Button> load() {
-				return Homes.getHomes(pd.getPlayer()).keySet().stream()
-						.map(x-> {
-							return new Button(Material.PAPER, (e, i) -> {
-								((Player) e.getWhoClicked()).performCommand("delhome " + x);
-								e.getWhoClicked().openInventory(new DelList(pd).getInventory());
-							}, "§r§a" + x);
-						})
-						.collect(Collectors.toList());
+			public List<String> load() {
+				List<String> list = new ArrayList<>();
+				for (String s : Homes.getHomes(pd.getPlayer()).keySet()) {
+					list.add(s);
+				}
+				return list;
+			}
+
+			@Override
+			protected Butto toAction(String entry, int slot) {
+				
+				return (p, e) -> {
+					p.performCommand("delhome" + entry);
+					p.closeInventory();
+				};
+			}
+
+			@Override
+			protected ItemStack toItem(String entry) {
+				return new ItemWrapper(Material.PAPER).n("§r§a" + entry).gi();
 			}
 		}
 	}
 	
-	private class TpaList extends ListInventory {
+	private class TpaList extends ListInventory<Player> {
 		public TpaList() {
 			super(SizeData.SMALL, "§r§8Select who to teleport to!");
-			setBackButton(new Homepage());
+			
+			setAction(0, (p, e) -> {
+				p.openInventory(new Homepage().getInventory());
+			});
+			setItem(0, Material.FEATHER).n("§r§7Back");
 		}
 
 		@Override
-		public List<Button> load() {
+		public List<Player> load() {
 			return Bukkit.getOnlinePlayers().stream()
 					.filter(x-> {
 						return (!x.getUniqueId().toString().equals(pd.getUniqueId().toString()));
 					})
-					.map( (x) -> {
-						return new Button(Material.PLAYER_HEAD, (e, i) -> {
-							((Player) e.getWhoClicked()).performCommand("tpa " + x.getName());
-							e.getWhoClicked().openInventory(new Homepage().getInventory());
-						}, "§r§a" + x.getName());
-					})
 					.collect(Collectors.toList());
+		}
+
+		@Override
+		protected Butto toAction(Player entry, int slot) {
+			return (p, e) -> {
+				p.performCommand("tpa " + entry.getName());
+				p.openInventory(new Homepage().getInventory());
+			};
+		}
+
+		@Override
+		protected ItemStack toItem(Player entry) {
+			return new ItemWrapper(Material.PLAYER_HEAD).n("§r§a" + entry.getName()).gi();
 		}
 	}
 	
-	public class FriendsList extends ListInventory {
+	public class FriendsList extends ListInventory<PlayerData> {
 		
 		public FriendsList() {
 			super(SizeData.SMALL, "§r§8Friends List");
-			setBackButton(new Homepage());
+
+			setAction(0, (p, e) -> {
+				p.openInventory(new Homepage().getInventory());
+			});
+			setItem(0, Material.FEATHER).n("§r§7Back");
 		}
 		
 		@Override
-		public List<Button> load() {
-			return Friends.getFriendsMap(pd).keySet().stream().map((x) -> {
-				return new Button(Material.PAPER, (e, i) -> {
-					
-					e.getWhoClicked().openInventory(new FriendOptions(pd, x).getInventory());
-					
-				}, "§r" + x.getRankedName() );
-			}).collect(Collectors.toList());
+		public List<PlayerData> load() {
+			return Friends.getFriendsMap(pd).keySet().stream()
+					.collect(Collectors.toList());
 		}
+		
+		@Override
+		protected Butto toAction(PlayerData entry, int slot) {
+			return (p, d) -> {
+				p.openInventory(new FriendOptions(pd, entry).getInventory());
+			};
+		}
+
+		@Override
+		protected ItemStack toItem(PlayerData entry) {
+			return new ItemWrapper(Material.PLAYER_HEAD).n(entry.getRankedName()).gi();
+		}
+		
+		
 		
 		public class FriendOptions extends BaseInventory {
 
 			public FriendOptions(PlayerData player, PlayerData friend) {
 				super(SizeData.SMALL, "§r§8Options for " + friend.getRankedName());
 				
-				setButton(12, new Button(Material.ARROW, (e, i) -> {
+				
+				setAction(12, (p, e) -> {
 					Friends.setRelation(player, Relation.NONE, friend, Relation.NONE);
 					player.sendMessage("§cYou have Unfriended " + friend.getName() + ".");
 					player.playSound(Sound.BLOCK_CALCITE_HIT);
 					// player.getPlayer().closeInventory(); // Better if not close
-					e.getWhoClicked().openInventory(new FriendOptions(player, friend).getInventory());
+					p.openInventory(new FriendOptions(player, friend).getInventory());
 					
-				}, "§r§cUnfriend"));
+				});
+				setItem(12, Material.ARROW).n("§r§cUnfriend");
 				
 				Relation r = Friends.getRelation(player, friend);
 				
 				if (r == Relation.FRIEND) {
-					setButton(14, new Button(Material.NETHER_STAR, (e, i) -> {
+					
+					setAction(14, (p, e) -> {
 						
 						Friends.setRelation(player, friend, Relation.FAVORITE);
 						player.sendMessage("§r§6" + friend.getName() + " is now a favorite!");
 						player.playSound(Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
 						// player.getPlayer().closeInventory(); // Better if not close
-						e.getWhoClicked().openInventory(new FriendOptions(player, friend).getInventory());
+						p.openInventory(new FriendOptions(player, friend).getInventory());
 						
-					}, "§r§eFavorite"));
+					});
+					setItem(14, Material.NETHER_STAR).n("§r§eFavorite");
 					
 				} else if (r == Relation.FAVORITE) {
-					setButton(14, new Button(Material.NETHER_STAR, (e, i) -> {
+					
+					setAction(14, (p, e) -> {
 						
 						Friends.setRelation(player, friend, Relation.FRIEND);
 						player.sendMessage("§r§c" + friend.getName() + " has Been unfavorited!");
 						player.playSound(Sound.BLOCK_CALCITE_HIT);
 						// player.getPlayer().closeInventory(); // Better if not close
-						e.getWhoClicked().openInventory(new FriendOptions(player, friend).getInventory());
+						p.openInventory(new FriendOptions(player, friend).getInventory());
 						
-					}, "§r§6Unfavorite"));
+					});
+					setItem(14, Material.NETHER_STAR).n("§r§6Unfavorite");
 				}
 			}
 		}
-
-		
 	}
 	
-	public class PlayerList extends ListInventory {
+	public class PlayerList extends ListInventory<PlayerData> {
 		
-		public PlayerList(PlayerData pd) {
+		public PlayerList() {
 			super(SizeData.SMALL, "§r§8Player List");
-			setBackButton(new Homepage());
+
+			setAction(0, (p, e) -> {
+				p.openInventory(new Homepage().getInventory());
+			});
+			setItem(0, Material.FEATHER).n("§r§7Back");
 		}
 		
 		@Override
-		public List<Button> load() {
+		protected Butto toAction(PlayerData entry, int slot) {
+			return (p, e) -> {
+				p.openInventory(new PlayerOptions(entry).getInventory());
+			};
+		}
+
+		@Override
+		protected ItemStack toItem(PlayerData entry) {
+			return new ItemWrapper(Material.PLAYER_HEAD).n(entry.getRankedName()).l((entry.isOnline()) ? "§r§aOnline" : "§r§cOffline").gi();
+		}
+		
+		@Override
+		public List<PlayerData> load() {
 			return PlayerData.stream()
 					.filter(x-> {
 						return (x != pd);
@@ -536,74 +664,80 @@ public class CommandsMenu implements InventoryHolder {
 							}
 						}
 					})
-					.map(x -> {
-						return new Button(Material.PLAYER_HEAD, (e, i) -> {
-							e.getWhoClicked().openInventory(new PlayerOptions(pd, x).getInventory());
-						}, "§r§a" + x.getName(), (x.getOfflinePlayer().isOnline()) ? "§r§aOnline" : "§r§cOffline"
-						
-						);
-					})
 					.collect(Collectors.toList());
 		}
 		
+		
 		private class PlayerOptions extends BaseInventory {
 			
-			public PlayerOptions(PlayerData pd, PlayerData player) {
+			public PlayerOptions(PlayerData player) {
 				super(SizeData.SMALL, player.getRankedName());
 				
-				setButton(0, new Button(Material.FEATHER, (e, i) -> {
-					e.getWhoClicked().openInventory(new PlayerList(pd).getInventory());
-				}, "§r§7Back"));
 				
-				pd.getPlayer().getEffectivePermissions().forEach(x-> {
-					if (x.getPermission().equals("teams.friend.*") && x.getValue() && TEAMINIT) {
-						
-						Relation r = Friends.getRelation(pd, player);
-						if (r == Relation.FRIEND || r == Relation.FAVORITE) {
-							setButton(11, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
-								e.getWhoClicked().openInventory(new UnfriendConfirm(pd, player).getInventory());
-							}, "§r§cUnfriend"));
-							
-							if (r == Relation.FAVORITE) {
-								setButton(12, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
-									((Player) e.getWhoClicked()).performCommand("unfav " + player.getName());
-									e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
-									
-								}, "§r§cUnfavorite"));
-							} else {
-								setButton(12, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
-									((Player) e.getWhoClicked()).performCommand("fav " + player.getName());
-									// p.closeInventory();
-									e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
-								}, "§r§eFavorite"));
-							}
-							
-						} else {
-							setButton(11, new Button(Material.TOTEM_OF_UNDYING, (e, i) -> {
-								e.getWhoClicked().openInventory(new FriendConfirm(pd, player).getInventory());
-							}, "§r§6Friend"));
-						}
-					}
-					
-					if (x.getPermission().equals("pgf.cmd.block") && x.getValue()) {
-						
-						if (Blocked.GET_BLOCKED(pd.getOfflinePlayer()).contains(player.getUniqueId())) {
-							setButton(14, new Button(Material.RED_STAINED_GLASS_PANE, (e, i) -> {
-								((Player) e.getWhoClicked()).performCommand("unblock " + player.getName());
-								// p.closeInventory();
-								e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
-							}, "§r§4Unblock"));
-						} else {
-							setButton(14, new Button(Material.WHITE_STAINED_GLASS_PANE, (e, i) -> {
-								((Player) e.getWhoClicked()).performCommand("block " + player.getName());
-								// p.closeInventory();
-								e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
-							}, "§r§4Block"));
-						}
-					}
-					
-					setButton(15, new Button(Material.RED_BANNER, "§r§4Report", "§r§7If someone is bullying or\ngriefing you, use this!" + "\nWIP"));
+				setAction(0, (p, e) -> {
+					p.openInventory(new PlayerList().getInventory());
 				});
+				setItem(0, Material.FEATHER).n("§r§7Back");
+				
+				List<String> perms = new ArrayList<>();
+				
+				for (PermissionAttachmentInfo s : pd.getPlayer().getEffectivePermissions()) {
+					if (s.getValue()) {
+						perms.add(s.getPermission());
+					}
+				}
+				
+				if (perms.contains("teams.friend.*") && TEAMINIT) {
+					
+					Relation r = Friends.getRelation(pd, player);
+					if (r == Relation.FRIEND || r == Relation.FAVORITE) {
+						setAction(11, (p, e) -> {
+							p.openInventory(new UnfriendConfirm(pd, player).getInventory());
+						});
+						setItem(11, Material.TOTEM_OF_UNDYING).n("§r§cUnfriend");
+						
+						if (r == Relation.FAVORITE) {
+							setAction(12, (p, e) -> {
+								p.performCommand("unfav " + player.getName());
+								p.openInventory(new PlayerOptions(player).getInventory());
+							});
+							setItem(12, Material.TOTEM_OF_UNDYING).n("§r§cUnfavorite");
+							
+						} else {
+							setAction(12, (p, e) -> {
+								p.performCommand("fav " + player.getName());
+								p.openInventory(new PlayerOptions(player).getInventory());
+							});
+							setItem(12, Material.TOTEM_OF_UNDYING).n("§r§eFavorite");
+							
+						}
+					} else {
+						setAction(11, (p, e) -> {
+							p.openInventory(new FriendConfirm(pd, player).getInventory());
+						});
+						setItem(11, Material.TOTEM_OF_UNDYING).n("§r§6Friend");
+					}
+				}
+				
+				if (perms.contains("pgf.cmd.block")) {
+					if (Blocked.GET_BLOCKED(pd.getOfflinePlayer()).contains(player.getUniqueId())) {
+						setAction(14, (p, e) -> {
+							p.performCommand("unblock " + player.getName());
+							p.openInventory(new PlayerOptions(player).getInventory());
+						});
+						setItem(14, Material.RED_STAINED_GLASS_PANE).n("§r§4Unblock");
+						
+					} else {
+						setAction(14, (p, e) -> {
+							p.performCommand("block " + player.getName());
+							p.openInventory(new PlayerOptions(player).getInventory());
+						});
+						setItem(14, Material.WHITE_STAINED_GLASS_PANE).n("§r§4Block");
+						
+					}
+				}
+				// XXX setButton(15, new Button(Material.RED_BANNER, "§r§4Report", "§r§7If someone is bullying or\ngriefing you, use this!" + "\nWIP"));
+				
 			}
 			
 			private class FriendConfirm extends BaseInventory {
@@ -611,15 +745,19 @@ public class CommandsMenu implements InventoryHolder {
 				public FriendConfirm(PlayerData pd, PlayerData player) {
 					super(SizeData.SMALL, "§r§6Friend " + player.getName() + "?");
 					
-					setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
-						// p.closeInventory();
-						((Player) e.getWhoClicked()).performCommand("friendrequest " + player.getName());
-						e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
-					}, "§r§aSend Request"));
 					
-					setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
-						e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
-					}, "§r§7Cancel"));
+					setAction(11, (p, e) -> {
+						// p.closeInventory();
+						p.performCommand("friendrequest " + player.getName());
+						p.openInventory(new PlayerOptions(player).getInventory());
+					});
+					setItem(11, Material.LIME_CONCRETE).n("§r§aSend Request");
+					
+					setAction(15, (p, e) -> {
+						p.openInventory(new PlayerOptions(player).getInventory());
+					});
+					setItem(15, Material.RED_CONCRETE).n("§r§7Cancel");
+					
 				}
 			}
 			
@@ -628,48 +766,53 @@ public class CommandsMenu implements InventoryHolder {
 				public UnfriendConfirm(PlayerData pd, PlayerData player) {
 					super(SizeData.SMALL, "§r§cUnfriend " + player.getName() + "?");
 					
-					setButton(11, new Button(Material.LIME_CONCRETE, (e, i) -> {
-						// p.closeInventory();
-						((Player) e.getWhoClicked()).performCommand("unfriend " + player.getName());
-						e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
-					}, "§r§cUnfriend"));
 					
-					setButton(15, new Button(Material.RED_CONCRETE, (e, i) -> {
-						e.getWhoClicked().openInventory(new PlayerOptions(pd, player).getInventory());
-					}, "§r§7Cancel"));
+					setAction(11, (p, e) -> {
+						p.performCommand("unfriend " + player.getName());
+						p.openInventory(new PlayerOptions(player).getInventory());
+					});
+					setItem(11, Material.LIME_CONCRETE).n("§r§cUnfriend");
+					
+					setAction(15, (p, e) -> {
+						p.openInventory(new PlayerOptions(player).getInventory());
+					});
+					setItem(15, Material.RED_CONCRETE).n("§r§7Cancel");
 				}
 			}
 		}
-
-		
 	}
 	
-	public class RequestList extends ListInventory {
+	public class RequestList extends ListInventory<Request> {
 		public RequestList(PlayerData pd) {
 			super(SizeData.SMALL, "Pending Requests");
-			setBackButton(new Homepage());
+
+			setAction(0, (p, e) -> {
+				p.openInventory(new Homepage().getInventory());
+			});
+			setItem(0, Material.FEATHER).n("§r§7Back");
 		}
 
 		@Override
-		public List<Button> load() {
-			Requester.ALLREQUESTS.stream()
-			.filter(x-> {
-				return (x.getTarget() == pd);
-			})
-			.map( x -> {
-				return new Button(Material.ARROW, (e, i) -> {
-					if (x.expireNow(Reason.Accept) != false) {
-						x.act();
-					} else {
-						pd.playSound(Sound.BLOCK_NOTE_BLOCK_BASS);
-						e.getWhoClicked().openInventory(new RequestList(pd).getInventory());
-					}
-				}, x.getParent().getName());
-			})
-			.collect(Collectors.toList());
-			
-			
-			return null;
+		public List<Request> load() {
+			return Requester.ALLREQUESTS;
+		}
+
+		@Override
+		protected Butto toAction(Request entry, int slot) {
+			// TODO Auto-generated method stub
+			return (p, e) -> {
+				if (entry.expireNow(Reason.Accept) != false) {
+					entry.act();
+				} else {
+					pd.playSound(Sound.BLOCK_NOTE_BLOCK_BASS);
+					p.openInventory(new RequestList(pd).getInventory());
+				}
+			};
+		}
+
+		@Override
+		protected ItemStack toItem(Request entry) {
+			return new ItemWrapper(Material.ARROW).n(entry.getParent().getName()).gi();
 		}
 	}
 
